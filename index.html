@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AgriTrace+ | Digital Livestock Registration & Reporting</title>
+  <meta name="description" content="AgriTrace+ — Philippine Digital Livestock Registration, Public Reporting, and Geo-Tagging System for the Department of Agriculture.">
+  <meta name="theme-color" content="#1C1008">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ============ PAGE LOADER ============ -->
+<div id="page-loader" class="page-loader">
+  <div class="loader-logo">Agri<span>Trace</span>+</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <p style="color:rgba(250,246,238,.4);font-size:12px;letter-spacing:.1em;text-transform:uppercase">Loading Digital Livestock System</p>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ============================================================
+     LANDING PAGE
+============================================================ -->
+<div class="app-page" id="page-home">
+
+  <!-- NAVBAR -->
+  <nav id="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">A</div>
+      <div class="nav-name">Agri<span>Trace</span>+</div>
+    </div>
+    <div class="nav-links">
+      <a class="nav-link" onclick="smoothScroll('#home')">Home</a>
+      <a class="nav-link" onclick="smoothScroll('#about')">About</a>
+      <a class="nav-link" onclick="smoothScroll('#features')">Features</a>
+      <a class="nav-link" onclick="smoothScroll('#contact')">Contact</a>
+    </div>
+    <div class="nav-actions">
+      <button class="btn btn-ghost btn-sm" onclick="Modal.open('modal-login')">Login</button>
+      <button class="btn btn-accent btn-sm" onclick="Modal.open('modal-register')">Register</button>
+    </div>
+    <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+      <span></span><span></span><span></span>
+    </div>
+  </nav>
+
+  <!-- MOBILE NAV -->
+  <div id="mobile-menu">
+    <a class="nav-link" onclick="smoothScroll('#home');toggleMobileNav()">🏠 Home</a>
+    <a class="nav-link" onclick="smoothScroll('#about');toggleMobileNav()">ℹ️ About</a>
+    <a class="nav-link" onclick="smoothScroll('#features');toggleMobileNav()">⭐ Features</a>
+    <a class="nav-link" onclick="smoothScroll('#contact');toggleMobileNav()">📬 Contact</a>
+    <div class="mobile-divider"></div>
+    <button class="btn btn-ghost btn-full" style="margin-bottom:8px" onclick="Modal.open('modal-login');toggleMobileNav()">Login</button>
+    <button class="btn btn-accent btn-full" onclick="Modal.open('modal-register');toggleMobileNav()">Register</button>
+  </div>
+
+  <!-- ====== HERO ====== -->
+  <section id="home" class="hero-section">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <!-- Decorative -->
+    <div style="position:absolute;right:6%;top:12%;font-size:180px;opacity:.04;transform:rotate(-12deg);pointer-events:none;z-index:1">🌾</div>
+    <div style="position:absolute;left:4%;bottom:12%;font-size:100px;opacity:.04;transform:rotate(8deg);pointer-events:none;z-index:1">🐄</div>
+
+    <div class="hero-content">
+      <div class="hero-badge" style="animation:fadeUp .7s .2s both">
+        <span>🇵🇭</span> Philippines Department of Agriculture
+      </div>
+      <h1 class="hero-title" style="animation:fadeUp .7s .35s both">
+        Digital Livestock<br>
+        <em>Registration &amp; Public Reporting</em>
+      </h1>
+      <p class="hero-subtitle" style="animation:fadeUp .7s .5s both">
+        Geo-tagged livestock monitoring, real-time disease outbreak reporting, and transparent farm management — protecting the nation's food supply.
+      </p>
+      <div class="hero-cta" style="animation:fadeUp .7s .65s both">
+        <button class="btn btn-accent btn-lg" onclick="Modal.open('modal-register')">🌱 Get Started Free</button>
+        <button class="btn btn-ghost btn-lg" onclick="Modal.open('modal-public-report')">📢 Public Report</button>
+      </div>
+    </div>
+
+    <!-- Floating Map Preview -->
+    <div class="floating-map">
+      <div id="hero-map" style="width:100%;height:100%"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-value">0</div><div class="hero-stat-label">Registered Farms</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">0</div><div class="hero-stat-label">Animals Tracked</div></div>
+      <div class="hero-stat"><div class="hero-stat-value">1</div><div class="hero-stat-label">DA Officers</div></div>
+    </div>
+
+    <div class="scroll-hint">↓</div>
+  </section>
+
+
+  <!-- ====== ABOUT ====== -->
+  <section id="about" class="section" style="background:var(--bg-secondary)">
+    <div class="section-label">About AgriTrace+</div>
+    <div class="about-grid">
+      <div>
+        <h2 class="section-title">Modernizing Philippine <span>Livestock Management</span></h2>
+        <div class="section-divider"></div>
+        <p style="font-size:16px;color:var(--text-muted);line-height:1.8;margin-bottom:18px">AgriTrace+ is a comprehensive digital platform developed to revolutionize how the Department of Agriculture monitors, registers, and manages livestock farms across the Philippines.</p>
+        <p style="font-size:16px;color:var(--text-muted);line-height:1.8;margin-bottom:28px">From small backyard farmers to large commercial operations, our system provides real-time geo-tagged tracking, automated biosecurity alerts, and transparent reporting.</p>
+        <div class="about-features">
+          <div class="feature-item"><div class="feature-icon">🗺️</div><h4>Geo-Tagged Mapping</h4><p>Precise GPS coordinates for every registered farm with real-time density visualization</p></div>
+          <div class="feature-item"><div class="feature-icon">🚨</div><h4>Outbreak Alerts</h4><p>Instant disease outbreak notifications with automated DA Officer dispatch</p></div>
+          <div class="feature-item"><div class="feature-icon">📊</div><h4>Data Analytics</h4><p>Comprehensive reports and analytics for informed policy decisions</p></div>
+          <div class="feature-item"><div class="feature-icon">💊</div><h4>IoT Monitoring</h4><p>Arduino sensor integration for real-time livestock health data</p></div>
+        </div>
+      </div>
+      <div class="about-image">
+        <div style="text-align:center;padding:40px">
+          <div style="font-size:80px;margin-bottom:20px">🌾</div>
+          <h3 style="color:var(--cream);font-size:22px;margin-bottom:12px">Built for Filipino Farmers</h3>
+          <p style="color:rgba(250,246,238,.6);font-size:15px;line-height:1.7">Serving farmers and DA officers across all regions of the Philippines with a modern, easy-to-use system.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px">
+            <div style="background:rgba(250,246,238,.08);border-radius:12px;padding:16px"><div style="font-size:24px;font-weight:700;color:var(--wheat);font-family:'Playfair Display',serif">17</div><div style="font-size:12px;color:rgba(250,246,238,.5);margin-top:4px">Regions Covered</div></div>
+            <div style="background:rgba(250,246,238,.08);border-radius:12px;padding:16px"><div style="font-size:24px;font-weight:700;color:var(--wheat);font-family:'Playfair Display',serif">99.8%</div><div style="font-size:12px;color:rgba(250,246,238,.5);margin-top:4px">System Uptime</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FEATURES ====== -->
+  <section id="features" class="section">
+    <div style="text-align:center">
+      <div class="section-label" style="justify-content:center;display:flex">Core Features</div>
+      <h2 class="section-title">Everything You Need to <span>Manage Livestock</span></h2>
+    </div>
+    <div class="features-grid">
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:#D4EDDA">📋</div>
+        <h3>Farm Registration</h3>
+        <p>Streamlined digital registration with GPS tagging, animal census, and document verification for all types of livestock farms.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:#FFF3CD">🗺️</div>
+        <h3>Live Geo Map</h3>
+        <p>Interactive real-time map showing all registered farms with color-coded animal density overlays and incident alerts.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:#F8D7DA">🚨</div>
+        <h3>Incident Reporting</h3>
+        <p>Immediate disease outbreak reporting with priority escalation, automatic DA Officer notification, and resolution tracking.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:#D1ECF1">💊</div>
+        <h3>Health Monitoring</h3>
+        <p>Arduino IoT sensor integration tracking temperature, humidity, ammonia, CO₂, feed and water levels in real time.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:#E8D5FF">📈</div>
+        <h3>Reports & Analytics</h3>
+        <p>Comprehensive exportable reports covering farm registrations, livestock counts, incident history, and DA inspections.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-card-icon" style="background:#FFE0B2">📢</div>
+        <h3>Public Reporting</h3>
+        <p>Anonymous public reporting portal for biosecurity threats near farms — community-powered outbreak detection.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== CONTACT ====== -->
+  <section id="contact" class="section" style="background:var(--bg-secondary)">
+    <div class="section-label">Get In Touch</div>
+    <div class="contact-grid">
+      <div>
+        <h2 class="section-title">Contact <span>AgriTrace+</span></h2>
+        <div class="section-divider"></div>
+        <p style="font-size:15px;color:var(--text-muted);line-height:1.8;margin-bottom:32px">Have questions about the system or need support? Reach out to our team or your regional DA Office.</p>
+        <div class="contact-info-item">
+          <div class="contact-icon">🏛️</div>
+          <div><div style="font-weight:600;margin-bottom:3px">Department of Agriculture</div><div style="font-size:13px;color:var(--text-muted)">Elliptical Road, Diliman, Quezon City, Metro Manila</div></div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-icon">📞</div>
+          <div><div style="font-weight:600;margin-bottom:3px">Hotline</div><div style="font-size:13px;color:var(--text-muted)">(02) 8920-4062 | 1-800-10-9202-2009</div></div>
+        </div>
+        <div class="contact-info-item">
+          <div class="contact-icon">✉️</div>
+          <div><div style="font-weight:600;margin-bottom:3px">Email Support</div><div style="font-size:13px;color:var(--text-muted)">support@agritrace.ph | info@da.gov.ph</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <h3 style="font-size:18px;margin-bottom:20px">Send a Message</h3>
+          <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" id="contact-name" placeholder="Juan dela Cruz"></div>
+          <div class="form-group"><label class="form-label">Email Address *</label><input class="form-control" type="email" id="contact-email" placeholder="your@email.com"></div>
+          <div class="form-group"><label class="form-label">Message *</label><textarea class="form-control" id="contact-msg" rows="5" placeholder="How can we help you?"></textarea></div>
+          <button class="btn btn-primary btn-full" onclick="sendContact()">Send Message</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-brand">Agri<span>Trace</span>+</div>
+    <div>© 2025 Department of Agriculture, Philippines. All rights reserved.</div>
+    <div style="display:flex;gap:16px">
+      <a style="color:rgba(250,246,238,.4);transition:color .2s;cursor:pointer" onmouseover="this.style.color='rgba(250,246,238,.8)'" onmouseout="this.style.color='rgba(250,246,238,.4)'">Privacy</a>
+      <a style="color:rgba(250,246,238,.4);transition:color .2s;cursor:pointer" onmouseover="this.style.color='rgba(250,246,238,.8)'" onmouseout="this.style.color='rgba(250,246,238,.4)'">Terms</a>
+    </div>
+  </footer>
+
+</div><!-- /page-home -->
+
+<!-- ============================================================
+     PANEL PAGE
+============================================================ -->
+<div class="app-page" id="page-panel" style="display:none">
+
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="panel-sidebar">
+    <!-- dynamically rendered -->
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content" id="main-content">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+        <div id="topbar-title">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <!-- Notification Bell -->
+        <div class="topbar-btn" id="notif-btn" onclick="toggleNotifPanel()" title="Notifications">
+          🔔
+          <div class="notif-dot" id="notif-dot"></div>
+        </div>
+        <!-- Profile Avatar -->
+        <div class="topbar-avatar" id="topbar-avatar" onclick="openProfileModal()" title="Profile">
+          <span id="topbar-initials">?</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL CONTENT -->
+    <div class="panel-content" id="panel-content-wrap">
+      <div id="panel-content"></div>
+    </div>
+  </div>
+
+  <!-- Notification Slide Panel -->
+  <div class="notif-panel" id="notif-panel">
+    <div class="notif-header">
+      <h3>🔔 Notifications</h3>
+      <button class="btn btn-sm btn-secondary" onclick="markAllNotifRead()">Mark all read</button>
+    </div>
+    <div class="notif-list" id="notif-list"></div>
+  </div>
+
+</div><!-- /page-panel -->
+
+<!-- ============================================================
+     MODALS
+============================================================ -->
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="modal-login">
+  <div class="modal">
+    <div class="modal-close" onclick="Modal.close('modal-login')">✕</div>
+    <div class="modal-header">
+      <div style="font-size:32px;margin-bottom:10px">🌾</div>
+      <h2>Welcome Back</h2>
+      <p>Sign in to your AgriTrace+ account</p>
+    </div>
+    <div class="form-group"><label class="form-label">Email Address</label><input class="form-control" type="email" id="login-email" placeholder="your@email.com" autocomplete="email"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-control" type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div id="login-error" class="form-error">Invalid email or password</div>
+    <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="doLogin()">Sign In</button>
+    <div class="modal-divider">or</div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:8px">
+      <span>New user? <span class="modal-link" onclick="Modal.switchTo('modal-login','modal-register')">Create account</span></span>
+      <span class="modal-link" onclick="Modal.switchTo('modal-login','modal-forgot')">Forgot password?</span>
+    </div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-light)">
+      <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Or submit a public report</p>
+      <button class="btn btn-secondary btn-full btn-sm" onclick="Modal.switchTo('modal-login','modal-public-report')">📢 Report Incident (No account needed)</button>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="modal-register">
+  <div class="modal modal-lg">
+    <div class="modal-close" onclick="Modal.close('modal-register')">✕</div>
+    <div class="modal-header">
+      <div style="font-size:32px;margin-bottom:10px">🌱</div>
+      <h2>Create Account</h2>
+      <p>Join AgriTrace+ and start managing your livestock digitally</p>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" id="reg-name" placeholder="Juan dela Cruz" autocomplete="name"></div>
+      <div class="form-group"><label class="form-label">Phone Number</label><input class="form-control" id="reg-phone" placeholder="+63 9XX XXX XXXX" type="tel" autocomplete="tel"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Email Address *</label><input class="form-control" type="email" id="reg-email" placeholder="your@email.com" autocomplete="email"></div>
+    <div class="form-group">
+      <label class="form-label">Account Type *</label>
+      <select class="form-control" id="reg-role">
+        <option value="farmer">🌾 Farmer / Livestock Owner</option>
+        <option value="officer">🏛️ DA Officer (requires verification)</option>
+      </select>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Password *</label><input class="form-control" type="password" id="reg-password" placeholder="Min 6 characters" autocomplete="new-password"></div>
+      <div class="form-group"><label class="form-label">Confirm Password *</label><input class="form-control" type="password" id="reg-confirm" placeholder="Repeat password" autocomplete="new-password"></div>
+    </div>
+    <div id="reg-error" class="form-error"></div>
+    <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="doRegister()">Create Account</button>
+    <div style="text-align:center;margin-top:14px;font-size:13px">Already have an account? <span class="modal-link" onclick="Modal.switchTo('modal-register','modal-login')">Sign in</span></div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal-overlay" id="modal-forgot">
+  <div class="modal">
+    <div class="modal-close" onclick="Modal.close('modal-forgot')">✕</div>
+    <div class="modal-header">
+      <div style="font-size:32px;margin-bottom:10px">🔑</div>
+      <h2>Reset Password</h2>
+      <p>Enter your email and we'll send you a reset link</p>
+    </div>
+    <div class="form-group"><label class="form-label">Email Address</label><input class="form-control" type="email" id="forgot-email" placeholder="your@email.com"></div>
+    <button class="btn btn-primary btn-full" onclick="doForgotPassword()">Send Reset Link</button>
+    <div style="text-align:center;margin-top:14px;font-size:13px"><span class="modal-link" onclick="Modal.switchTo('modal-forgot','modal-login')">← Back to Login</span></div>
+  </div>
+</div>
+
+<!-- PUBLIC REPORT MODAL -->
+<div class="modal-overlay" id="modal-public-report">
+  <div class="modal modal-lg">
+    <div class="modal-close" onclick="Modal.close('modal-public-report')">✕</div>
+    <div class="modal-header">
+      <div style="font-size:32px;margin-bottom:10px">📢</div>
+      <h2>Public Incident Report</h2>
+      <p>Report a biosecurity concern or livestock incident — no account needed</p>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:20px">🔒 Reports can be submitted anonymously. Your information is kept confidential.</div>
+    <div class="form-group"><label class="form-label">Incident Type *</label>
+      <select class="form-control" id="pub-type">
+        <option value="disease">Disease / Illness Signs</option>
+        <option value="death">Unexplained Animal Deaths</option>
+        <option value="biosecurity">Biosecurity Threat</option>
+        <option value="waste">Improper Waste Disposal</option>
+        <option value="other">Other Concern</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Location *</label><input class="form-control" id="pub-location" placeholder="e.g. Near Riverside, Barangay Mayondon, Los Baños, Laguna"></div>
+    <div class="form-group"><label class="form-label">Description *</label><textarea class="form-control" id="pub-desc" rows="4" placeholder="Please describe what you observed. Include details like animal type, number of animals affected, and any other relevant information."></textarea></div>
+    <div class="form-group"><label class="form-label">Your Name (optional)</label><input class="form-control" id="pub-name" placeholder="Leave blank to report anonymously"></div>
+    <button class="btn btn-danger btn-full" onclick="submitPublicReport()">🚨 Submit Report</button>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay profile-modal" id="modal-profile">
+  <div class="modal">
+    <div class="modal-close" onclick="Modal.close('modal-profile')">✕</div>
+    <div id="profile-modal-content"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
+<script src="js/app.js"></script>
+<script src="js/panels.js"></script>
+<script>
+/* ============ NAVIGATION ============ */
+function smoothScroll(selector) {
+  const el = document.querySelector(selector);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showPage(id) {
+  document.querySelectorAll('.app-page').forEach(p => p.style.display = 'none');
+  const pg = document.getElementById('page-' + id);
+  if (pg) pg.style.display = id === 'panel' ? 'flex' : 'block';
+}
+
+function showPanel(role) {
+  const user = AppState.currentUser;
+  if (!user) { Modal.open('modal-login'); return; }
+  if (role === 'admin' && user.role !== 'admin') { Toast.show('Admin access required', 'error'); return; }
+  if (role === 'officer' && !['admin','officer'].includes(user.role)) { Toast.show('DA Officer access required', 'error'); return; }
+  document.querySelectorAll('.app-page').forEach(p => p.style.display = 'none');
+  const pg = document.getElementById('page-panel');
+  if (pg) pg.style.display = 'flex';
+  AppState.currentPanel = role;
+  renderPanel(role);
+  updateTopbarAvatar();
+}
+
+function updateTopbarAvatar() {
+  const u = AppState.currentUser;
+  if (!u) return;
+  const el = document.getElementById('topbar-initials');
+  const wrap = document.getElementById('topbar-avatar');
+  if (!el || !wrap) return;
+  if (u.avatar) {
+    wrap.innerHTML = `<img src="${u.avatar}" alt="${u.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    el.textContent = Utils.initials(u.name);
+  }
+}
+
+/* ============ MOBILE NAV ============ */
+function toggleMobileNav() {
+  const menu = document.getElementById('mobile-menu');
+  const hamburger = document.getElementById('hamburger');
+  if (!menu) return;
+  menu.classList.toggle('show');
+  hamburger.classList.toggle('open');
+}
+
+/* ============ PANEL SIDEBAR ============ */
+function toggleSidebar() {
+  const sb = document.getElementById('panel-sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  if (!sb) return;
+  sb.classList.toggle('open');
+  if (ov) ov.classList.toggle('show');
+}
+
+function closeSidebar() {
+  const sb = document.getElementById('panel-sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  if (sb) sb.classList.remove('open');
+  if (ov) ov.classList.remove('show');
+}
+
+/* ============ NOTIFICATION PANEL ============ */
+function toggleNotifPanel() {
+  const p = document.getElementById('notif-panel');
+  if (!p) return;
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) renderNotifPanel();
+}
+
+function renderNotifPanel() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  const icons = { alert:'#F8D7DA', warning:'#FFF3CD', info:'#D1ECF1', success:'#D4EDDA' };
+  list.innerHTML = AppState.notifications.length
+    ? AppState.notifications.map(n => `
+        <div class="notif-item ${!n.read?'unread':''}" onclick="markNotifRead('${n.id}')">
+          <div class="notif-icon" style="background:${icons[n.type]||'#eee'}">${n.icon}</div>
+          <div class="notif-text">
+            <p><strong>${n.title}</strong></p>
+            <p style="color:var(--text-muted);font-size:12px;margin-top:2px">${n.message}</p>
+            <div class="notif-time">${n.time}</div>
+          </div>
+          ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:var(--meadow);flex-shrink:0;margin-top:4px"></div>' : ''}
+        </div>`).join('')
+    : '<div style="padding:30px;text-align:center;color:var(--text-muted)">No notifications</div>';
+  const dot = document.getElementById('notif-dot');
+  if (dot) dot.style.display = AppState.notifications.some(n => !n.read) ? 'block' : 'none';
+}
+
+function markNotifRead(id) {
+  const n = AppState.notifications.find(x => x.id === id);
+  if (n) { n.read = true; renderNotifPanel(); }
+}
+
+function markAllNotifRead() {
+  AppState.notifications.forEach(n => n.read = true);
+  renderNotifPanel();
+  Toast.show('All notifications marked as read', 'success');
+}
+
+document.addEventListener('click', e => {
+  const p = document.getElementById('notif-panel');
+  const b = document.getElementById('notif-btn');
+  if (p && b && !p.contains(e.target) && !b.contains(e.target)) p.classList.remove('open');
+});
+
+/* ============ AUTH FORMS ============ */
+function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.style.display = 'block'; errEl.textContent = 'Please fill all fields'; return; }
+  const r = Auth.login(email, password);
+  if (r.success) {
+    Modal.closeAll();
+    Toast.show(`Welcome back, ${r.user.name}! 🌾`, 'success');
+    setTimeout(() => showPanel(r.user.role), 250);
+  } else {
+    errEl.style.display = 'block'; errEl.textContent = r.error;
+  }
+}
+
+function doRegister() {
+  const name     = document.getElementById('reg-name').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const phone    = document.getElementById('reg-phone').value.trim();
+  const role     = document.getElementById('reg-role').value;
+  const password = document.getElementById('reg-password').value;
+  const confirm  = document.getElementById('reg-confirm').value;
+  const errEl    = document.getElementById('reg-error');
+  errEl.style.display = 'none';
+  if (!name || !email || !password) { showErr(errEl, 'Please fill all required fields'); return; }
+  if (password !== confirm) { showErr(errEl, 'Passwords do not match'); return; }
+  if (password.length < 6) { showErr(errEl, 'Password must be at least 6 characters'); return; }
+  const r = Auth.register({ name, email, phone, role, password });
+  if (r.success) {
+    Modal.closeAll();
+    Auth.login(email, password);
+    Toast.show(`Welcome to AgriTrace+, ${name}! 🌱`, 'success');
+    setTimeout(() => showPanel(role), 300);
+  } else { showErr(errEl, r.error); }
+}
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+function doForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { Toast.show('Please enter your email address', 'error'); return; }
+  Modal.close('modal-forgot');
+  Toast.show(`Reset link sent to ${email} (check your inbox)`, 'success');
+}
+
+function submitPublicReport() {
+  const type     = document.getElementById('pub-type').value;
+  const location = document.getElementById('pub-location').value.trim();
+  const desc     = document.getElementById('pub-desc').value.trim();
+  const name     = document.getElementById('pub-name').value.trim() || 'Anonymous Public';
+  const sel      = document.getElementById('pub-type');
+  if (!location || !desc) { Toast.show('Please fill location and description', 'error'); return; }
+  const inc = {
+    id: Utils.generateId(), type,
+    title: `Public Report: ${sel.options[sel.selectedIndex].text}`,
+    farmId: null, farmName: null, reporter: name, reporterRole: 'public',
+    description: `📍 Location: ${location}\n\n${desc}`, status: 'open',
+    priority: 'high', date: new Date().toISOString(), assignedTo: null, lat: null, lng: null
+  };
+  AppState.incidents.push(inc);
+  AppState.notifications.unshift({ id: Utils.generateId(), title: 'New Public Report', message: inc.title, type: 'alert', read: false, time: 'just now', icon: '📢' });
+  AppState.save();
+  Modal.close('modal-public-report');
+  // Clear fields
+  ['pub-location','pub-desc','pub-name'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  Toast.show('Report submitted! Thank you for helping protect Philippine livestock.', 'success');
+}
+
+function sendContact() {
+  const name = document.getElementById('contact-name').value.trim();
+  const email = document.getElementById('contact-email').value.trim();
+  const msg   = document.getElementById('contact-msg').value.trim();
+  if (!name || !email || !msg) { Toast.show('Please fill all required fields', 'error'); return; }
+  Toast.show('Message sent! We will respond within 1-2 business days.', 'success');
+  document.getElementById('contact-name').value = '';
+  document.getElementById('contact-email').value = '';
+  document.getElementById('contact-msg').value = '';
+}
+
+function quickLogin(role) {
+  const creds = { admin: ['admin@agritrace.ph','admin123'], officer: ['officer@agritrace.ph','officer123'], farmer: ['farmer@agritrace.ph','farmer123'] };
+  const [email, password] = creds[role];
+  const r = Auth.login(email, password);
+  if (r.success) {
+    Toast.show(`Logged in as ${r.user.name}`, 'success');
+    setTimeout(() => showPanel(role), 250);
+  }
+}
+
+/* ============ HERO MAP ============ */
+window.addEventListener('load', () => {
+  const heroEl = document.getElementById('hero-map');
+  if (heroEl && window.L) {
+    const map = L.map('hero-map', { zoomControl:false, attributionControl:false, dragging:false, scrollWheelZoom:false }).setView([14.2,121.1], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    AppState.farms.forEach(f => {
+      if (!f.lat || !f.lng) return;
+      const color = f.totalCount > 30 ? '#C0392B' : f.totalCount > 20 ? '#D4A843' : '#4A7C59';
+      const icon  = L.divIcon({ html:`<div style="background:${color};color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,.3)">${f.totalCount}</div>`, iconSize:[30,30], iconAnchor:[15,15], className:'' });
+      L.marker([f.lat,f.lng],{icon}).addTo(map);
+    });
+  }
+});
+
+/* ============ INIT ============ */
+document.addEventListener('DOMContentLoaded', async () => {
+  await AppState.init();
+  Toast.init();
+
+  // Modal overlay click to close
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) Modal.close(el.id); });
+  });
+
+  // Navbar scroll effect
+  const navbar = document.getElementById('navbar');
+  if (navbar) {
+    const onScroll = () => { navbar.classList.toggle('scrolled', window.scrollY > 40); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  // Close mobile menu on outside click
+  document.addEventListener('click', e => {
+    const menu = document.getElementById('mobile-menu');
+    const hamburger = document.getElementById('hamburger');
+    if (menu && hamburger && menu.classList.contains('show') && !menu.contains(e.target) && !hamburger.contains(e.target)) {
+      menu.classList.remove('show');
+      hamburger.classList.remove('open');
+    }
+  });
+
+  // Page loader
+  const loader = document.getElementById('page-loader');
+  if (loader) {
+    setTimeout(() => {
+      loader.style.opacity = '0';
+      setTimeout(() => { loader.style.display = 'none'; }, 500);
+    }, 1800);
+  }
+});
+</script>
+</body>
+</html>
