@@ -286,7 +286,11 @@
     <div class="form-group"><label class="form-label">Password</label><input class="form-control" type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div id="login-error" class="form-error">Invalid email or password</div>
     <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="doLogin()">Sign In</button>
-    <div class="modal-divider">or</div>
+    <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="Auth.loginWithGoogle()">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:16px;height:16px;vertical-align:middle;margin-right:8px">
+    Continue with Google
+    </button>
+<div class="modal-divider">or</div>
     <div style="display:flex;justify-content:space-between;font-size:13px;flex-wrap:wrap;gap:8px">
       <span>New user? <span class="modal-link" onclick="Modal.switchTo('modal-login','modal-register')">Create account</span></span>
       <span class="modal-link" onclick="Modal.switchTo('modal-login','modal-forgot')">Forgot password?</span>
@@ -381,6 +385,7 @@
 <!-- ============================================================
      SCRIPTS
 ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exifr/dist/lite.umd.js"></script>
 <script src="js/app.js"></script>

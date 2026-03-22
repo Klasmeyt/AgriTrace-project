@@ -215,3 +215,16 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`AgriTrace+ (Supabase) running at http://localhost:${PORT}`);
 });
+
+// ── AUTH CALLBACK ─────────────────────────────────────────────────────────────
+app.get('/auth/callback', (req, res) => {
+  // Supabase handles the session on the client side via the URL fragment
+  // Just redirect back to the app and let the frontend JS handle it
+  res.redirect('/');
+});
+```
+
+That's the only backend change needed. Your redirect URL to add in Supabase would then be:
+```
+http://localhost:8080/auth/callback       ← for local dev
+https://agritrace-project.app/auth/callback  ← for production

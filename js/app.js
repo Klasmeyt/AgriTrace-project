@@ -7,6 +7,10 @@
 /* ============================================================
    APP STATE
 ============================================================ */
+const supabase = window.supabase.createClient(
+  'https://vkgwhdhreoxokaohcvxp.supabase.co',  // ← your actual Supabase URL
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZ3doZGhyZW94b2thb2hjdnhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzI0NzAsImV4cCI6MjA4OTc0ODQ3MH0.gjNM0Ujc7powUhAs9vn1z6bBoyOlvnVuSF1i01tn7y0'              // ← your actual anon key (from Supabase → Settings → API)
+);
 const Api = {
   baseUrl: (window.location.port === '8080') ? 'http://127.0.0.1:8081' : '',
   async loadState() {
@@ -36,6 +40,23 @@ const AppState = {
   _saveTimer: null,
 
   async init() {
+    // Handle Google OAuth redirect
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user && !AppState.currentUser) {
+      const googleUser = {
+        id: session.user.id,
+        name: session.user.user_metadata?.full_name || session.user.email,
+        email: session.user.email,
+        role: 'farmer',        // default role for Google sign-ins
+        status: 'active',
+        avatar: session.user.user_metadata?.avatar_url || null,
+        phone: '',
+        created: new Date().toISOString()
+      };
+      AppState.currentUser = googleUser;
+      localStorage.setItem('agritrace_user', JSON.stringify(googleUser));
+    }
+  
     this.loadCurrentUser();
     await this.loadFromBackend();
     this.initRuntimeNotifications();
@@ -96,9 +117,18 @@ const Auth = {
     if (user.status !== 'active') return { success:false, error:'Your account has been deactivated. Contact admin.' };
     AppState.currentUser = user;
     localStorage.setItem('agritrace_user', JSON.stringify(user));
-    return { success:true, user };
+    return { success:true, user }; 
   },
 
+  async loginWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/auth/callback' }
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  },
+  
   register(data) {
     if (AppState.users.find(u => u.email.toLowerCase() === data.email.toLowerCase()))
       return { success:false, error:'An account with this email already exists' };
@@ -115,6 +145,7 @@ const Auth = {
 
   logout() {
     if (sensorInterval) clearInterval(sensorInterval);
+    supabase.auth.signOut(); // ← add this line
     AppState.currentUser = null;
     localStorage.removeItem('agritrace_user');
     showPage('home');
