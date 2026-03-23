@@ -485,11 +485,6 @@ const Modal = {
 
 /* ============ AUTH SYSTEM (Demo) ============ */
 const Auth = {
-  users: {
-    'admin@agritrace.ph': { name: 'Admin User', role: 'admin', email: 'admin@agritrace.ph', avatar: null },
-    'officer@agritrace.ph': { name: 'DA Officer Reyes', role: 'officer', email: 'officer@agritrace.ph', avatar: null },
-    'farmer@agritrace.ph': { name: 'Juan Dela Cruz', role: 'farmer', email: 'farmer@agritrace.ph', avatar: null }
-  },
   login(email, password) {
     // Demo login - in production use Supabase/Firebase
     const user = this.users[email];
@@ -500,7 +495,7 @@ const Auth = {
     }
     return { success: false, error: 'Invalid email or password' };
   },
-  register(data) {
+    register(data) {
     // Demo register
     const { name, email, role, password } = data;
     if (this.users[email]) {
