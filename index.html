@@ -486,7 +486,6 @@ const Modal = {
 /* ============ AUTH SYSTEM (Demo) ============ */
 const Auth = {
   login(email, password) {
-    // Demo login - in production use Supabase/Firebase
     const user = this.users[email];
     if (user && password === (email.includes('admin') ? 'admin123' : email.includes('officer') ? 'officer123' : 'farmer123')) {
       AppState.currentUser = user;
@@ -505,9 +504,6 @@ const Auth = {
     AppState.currentUser = this.users[email];
     AppState.save();
     return { success: true, user: AppState.currentUser };
-  },
-  loginWithGoogle() {
-    Toast.show('Google login demo - coming soon!', 'info');
   },
   logout() {
     AppState.currentUser = null;
