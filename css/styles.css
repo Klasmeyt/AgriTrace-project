@@ -400,6 +400,11 @@ footer { background: var(--soil); color: rgba(250,246,238,.5); display: flex; al
 
 /* ============ LOADER ============ */
 .page-loader { position: fixed; inset: 0; z-index: 9998; background: var(--bg-dark); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 18px; transition: opacity .5s; }
+#page-loader.hide {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease-out;
+}
 .loader-logo { font-family: 'Playfair Display',serif; font-size: 30px; color: var(--cream); }
 .loader-logo span { color: var(--wheat); }
 .loader-bar { width: 180px; height: 3px; background: rgba(255,255,255,.08); border-radius: 100px; overflow: hidden; }

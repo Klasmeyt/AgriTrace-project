@@ -378,11 +378,50 @@
 <!-- ============================================================
      JAVASCRIPT - COMPLETE FUNCTIONALITY
 ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = 'https://vkgwhdhreoxokaohcvxp.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZ3doZGhyZW94b2thb2hjdnhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzI0NzAsImV4cCI6MjA4OTc0ODQ3MH0.gjNM0Ujc7powUhAs9vn1z6bBoyOlvnVuSF1i01tn7y0';
+const SB_LIB = typeof globalThis !== 'undefined' ? globalThis.supabase : null;
+const supabase = SB_LIB?.createClient ? SB_LIB.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+const DEMO_SEED_USERS = [
+  { id: 'u-seed-admin', name: 'System Admin', email: 'admin@agritrace.ph', role: 'admin', status: 'active', avatar: null, phone: '' },
+  { id: 'u-seed-officer', name: 'Maria Santos', email: 'officer@agritrace.ph', role: 'officer', status: 'active', avatar: null, phone: '' },
+  { id: 'u-seed-farmer', name: 'Juan dela Cruz', email: 'farmer@agritrace.ph', role: 'farmer', status: 'active', avatar: null, phone: '' }
+];
+
+const Api = {
+  async _fetchWithTimeout(url, opts = {}, timeoutMs = 2500) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...opts, signal: controller.signal });
+    } finally {
+      clearTimeout(id);
+    }
+  },
+  async loadState() {
+    const res = await this._fetchWithTimeout('/api/state', undefined, 2500);
+    if (!res.ok) throw new Error('Failed to load state');
+    return res.json();
+  },
+  async saveState(payload) {
+    const res = await this._fetchWithTimeout('/api/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }, 2500);
+    if (!res.ok) throw new Error('Failed to save state');
+    return res.json();
+  }
+};
+
 /* ============ APP STATE ============ */
 const AppState = {
   currentUser: null,
   currentPanel: null,
+  users: [],
   farms: [
     {id:'f1', name:'Dela Cruz Farm', lat:14.25, lng:121.05, totalCount:45, animals:{cattle:25, swine:20}},
     {id:'f2', name:'Reyes Livestock', lat:14.15, lng:121.12, totalCount:28, animals:{cattle:18, swine:10}},
@@ -390,28 +429,72 @@ const AppState = {
   ],
   incidents: [],
   notifications: [],
+  activityLog: [],
+  _saveTimer: null,
   async init() {
-    // Load from localStorage
-    const saved = localStorage.getItem('agritrace_state');
-    if (saved) {
-      const data = JSON.parse(saved);
-      this.currentUser = data.currentUser || null;
-      this.notifications = data.notifications || [];
+    const savedUser = localStorage.getItem('agritrace_user');
+    if (savedUser) this.currentUser = JSON.parse(savedUser);
+
+    try {
+      const state = await Api.loadState();
+      this.users = Array.isArray(state.users) ? state.users : [];
+      this.farms = Array.isArray(state.farms) ? state.farms : this.farms;
+      this.incidents = Array.isArray(state.incidents) ? state.incidents : [];
+      this.activityLog = Array.isArray(state.activityLog) ? state.activityLog : [];
+    } catch (e) {
+      console.warn('State load failed:', e);
+      this.users = DEMO_SEED_USERS.map((u) => ({ ...u }));
     }
+
+    if (!Array.isArray(this.users) || this.users.length === 0) {
+      // Avoid a blank state when backend returns empty users.
+      this.users = DEMO_SEED_USERS.map((u) => ({ ...u }));
+    }
+
+    if (supabase?.auth) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          const byEmail = this.users.find((u) => u.email?.toLowerCase() === session.user.email.toLowerCase());
+          if (byEmail) {
+            this.currentUser = byEmail;
+            localStorage.setItem('agritrace_user', JSON.stringify(byEmail));
+          }
+        }
+      } catch (e) {
+        console.warn('Session check failed:', e);
+      }
+    }
+
     // Animate hero stats
     this.animateHeroStats();
   },
   save() {
-    localStorage.setItem('agritrace_state', JSON.stringify({
-      currentUser: this.currentUser,
-      notifications: this.notifications
-    }));
+    if (this.currentUser) {
+      localStorage.setItem('agritrace_user', JSON.stringify(this.currentUser));
+    } else {
+      localStorage.removeItem('agritrace_user');
+    }
+    clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => {
+      Api.saveState({
+        users: this.users,
+        farms: this.farms,
+        incidents: this.incidents,
+        activityLog: this.activityLog
+      }).catch((err) => console.warn('Save state failed:', err));
+    }, 200);
   },
   animateHeroStats() {
     const farms = document.getElementById('hero-stat-farms');
     const animals = document.getElementById('hero-stat-animals');
     if (farms) farms.textContent = this.farms.length;
+    const officers = document.getElementById('hero-stat-officers');
     if (animals) animals.textContent = this.farms.reduce((sum, f) => sum + (f.totalCount || 0), 0);
+    if (officers) {
+      const count = this.users.filter((u) => ['admin', 'officer'].includes(normalizeRole(u.role, u.name))).length;
+      officers.textContent = String(Math.max(1, count));
+    }
   }
 };
 
@@ -483,29 +566,97 @@ const Modal = {
   }
 };
 
+function normalizeRole(role, name) {
+  const r = String(role || '').toLowerCase().trim();
+  if (['admin', 'administrator'].includes(r)) return 'admin';
+  if (['officer', 'da_officer', 'da officer'].includes(r)) return 'officer';
+  if (r === 'farmer') return 'farmer';
+  const n = String(name || '').toLowerCase();
+  if (n.includes('admin')) return 'admin';
+  if (n.includes('officer') || n.includes('da')) return 'officer';
+  return 'farmer';
+}
+
 /* ============ AUTH SYSTEM (Demo) ============ */
 const Auth = {
-  login(email, password) {
-    const user = this.users[email];
-    if (user && password === (email.includes('admin') ? 'admin123' : email.includes('officer') ? 'officer123' : 'farmer123')) {
+  async login(email, password) {
+    if (supabase?.auth) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error || !data?.user) return { success: false, error: error?.message || 'Invalid email or password' };
+      let user = AppState.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+      if (!user) {
+        await AppState.init();
+        user = AppState.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+      }
+      if (!user) {
+        user = {
+          id: data.user.id,
+          name: data.user.user_metadata?.full_name || email.split('@')[0],
+          email,
+          role: 'farmer',
+          status: 'active',
+          avatar: data.user.user_metadata?.avatar_url || null,
+          phone: ''
+        };
+        AppState.users.push(user);
+        AppState.save();
+      }
+      user.role = normalizeRole(user.role, user.name);
       AppState.currentUser = user;
       AppState.save();
-      return { success: true, user };
+      return { success: true, user: AppState.currentUser };
     }
-    return { success: false, error: 'Invalid email or password' };
+    const user = AppState.users.find((u) => u.email?.toLowerCase() === email.toLowerCase() && u.password === password);
+    if (!user) return { success: false, error: 'Invalid email or password' };
+    user.role = normalizeRole(user.role, user.name);
+    AppState.currentUser = user;
+    AppState.save();
+    return { success: true, user };
   },
-    register(data) {
-    // Demo register
+  async register(data) {
     const { name, email, role, password } = data;
-    if (this.users[email]) {
+    if (AppState.users.some((u) => u.email?.toLowerCase() === email.toLowerCase())) {
       return { success: false, error: 'Email already registered' };
     }
-    this.users[email] = { name, role, email, avatar: null };
-    AppState.currentUser = this.users[email];
+    if (supabase?.auth) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } }
+      });
+      if (error) return { success: false, error: error.message };
+    }
+    const newUser = {
+      id: Utils.generateId(),
+      name,
+      email,
+      role: normalizeRole(role, name),
+      status: 'active',
+      avatar: null,
+      phone: data.phone || ''
+    };
+    AppState.users.push(newUser);
+    AppState.currentUser = newUser;
     AppState.save();
-    return { success: true, user: AppState.currentUser };
+    return { success: true, user: newUser };
+  },
+  async loginWithGoogle() {
+    if (!supabase?.auth) {
+      Toast.show('Google sign-in unavailable in demo mode', 'error');
+      return { success: false };
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/auth/callback' }
+    });
+    if (error) {
+      Toast.show(error.message, 'error');
+      return { success: false, error: error.message };
+    }
+    return { success: true };
   },
   logout() {
+    supabase?.auth?.signOut?.().catch(() => {});
     AppState.currentUser = null;
     AppState.save();
     showPage('home');
@@ -533,18 +684,19 @@ function showPanel(role) {
     Modal.open('modal-login'); 
     return; 
   }
-  if (role === 'admin' && user.role !== 'admin') { 
+  const userRole = normalizeRole(user.role, user.name);
+  if (role === 'admin' && userRole !== 'admin') { 
     Toast.show('Admin access required', 'error'); 
     return; 
   }
-  if (role === 'officer' && !['admin','officer'].includes(user.role)) { 
+  if (role === 'officer' && !['admin','officer'].includes(userRole)) { 
     Toast.show('DA Officer access required', 'error'); 
     return; 
   }
   document.querySelectorAll('.app-page').forEach(p => p.style.display = 'none');
   document.getElementById('page-panel').style.display = 'flex';
   AppState.currentPanel = role;
-  renderPanel(role);
+  renderPanel('dashboard');
   updateTopbarAvatar();
 }
 
@@ -595,7 +747,8 @@ function renderNotifPanel() {
         <div class="notif-text">
           <p><strong>${n.title}</strong></p>
           <p style="color:var(--text-muted);font-size:12px;margin-top:2px">${n.message}</p>
-          <div class="notif-time">${n.time}</div        </div>
+          <div class="notif-time">${n.time}</div>
+        </div>
         ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:var(--meadow);flex-shrink:0;margin-top:4px"></div>' : ''}
       </div>`).join('')
     : '<div style="padding:30px;text-align:center;color:var(--text-muted)">No notifications</div>';
@@ -644,13 +797,14 @@ function openProfileModal() {
   }
 }
 
-function renderPanel(role) {
+function renderPanel(section) {
   const content = document.getElementById('panel-content');
   const sidebar = document.getElementById('panel-sidebar');
   if (!content || !sidebar) return;
+  const role = AppState.currentPanel || 'farmer';
 
   // Update topbar title
-  document.getElementById('topbar-title').textContent = role.charAt(0).toUpperCase()() + role.slice(1) + ' Dashboard';
+  document.getElementById('topbar-title').textContent = section.charAt(0).toUpperCase() + section.slice(1);
 
   // Sidebar
   sidebar.innerHTML = `
@@ -683,7 +837,7 @@ function renderPanel(role) {
   `;
 
   // Content
-  content.innerHTML = role === 'dashboard' ? `
+  content.innerHTML = section === 'dashboard' ? `
     <div style="text-align:center;padding:60px 40px">
       <div style="font-size:80px;margin-bottom:24px">🌾</div>
       <h1 style="font-size:36px;font-weight:700;margin-bottom:16px;font-family:'Playfair Display',serif">Welcome to ${role.charAt(0).toUpperCase() + role.slice(1)} Dashboard</h1>
@@ -703,7 +857,7 @@ function renderPanel(role) {
         </div>
       </div>
     </div>
-  ` : '<div>Loading ' + role + ' panel...</div>';
+  ` : '<div>Loading ' + section + ' panel...</div>';
 }
 
 /* ============ FORM HANDLERS ============ */
@@ -719,15 +873,16 @@ function doLogin() {
     return; 
   }
   
-  const r = Auth.login(email, password);
+  Promise.resolve(Auth.login(email, password)).then((r) => {
   if (r.success) {
     Modal.closeAll();
     Toast.show(`Welcome back, ${r.user.name}! 🌾`, 'success');
-    setTimeout(() => showPanel(r.user.role), 250);
+    setTimeout(() => showPanel(normalizeRole(r.user.role, r.user.name)), 250);
   } else {
     errEl.style.display = 'block'; 
     errEl.textContent = r.error;
   }
+  });
 }
 
 function doRegister() {
@@ -753,14 +908,15 @@ function doRegister() {
     return; 
   }
   
-  const r = Auth.register({ name, email, phone, role, password });
+  Promise.resolve(Auth.register({ name, email, phone, role, password })).then((r) => {
   if (r.success) {
     Modal.closeAll();
     Toast.show(`Welcome to AgriTrace+, ${name}! 🌱`, 'success');
-    setTimeout(() => showPanel(role), 300);
+    setTimeout(() => showPanel(normalizeRole(r.user.role, r.user.name)), 300);
   } else { 
     showErr(errEl, r.error); 
   }
+  });
 }
 
 function showErr(el, msg) { 
@@ -774,15 +930,28 @@ function doForgotPassword() {
     Toast.show('Please enter your email address', 'error'); 
     return; 
   }
-  Modal.close('modal-forgot');
-  Toast.show(`Reset link sent to ${email} (demo)`, 'success');
+  if (!supabase?.auth) {
+    Modal.close('modal-forgot');
+    Toast.show('Reset is unavailable in demo mode', 'error');
+    return;
+  }
+  supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/auth/callback'
+  }).then(({ error }) => {
+    if (error) {
+      Toast.show(error.message, 'error');
+      return;
+    }
+    Modal.close('modal-forgot');
+    Toast.show(`Reset link sent to ${email}`, 'success');
+  });
 }
 
 function submitPublicReport() {
   const type = document.getElementById('pub-type').value;
   const location = document.getElementById('pub-location').value.trim();
   const desc = document.getElementById('pub-desc').value.trim();
-  const name = document.getElementById('-pub-name').value.trim() || 'Anonymous Public';
+  const name = document.getElementById('pub-name').value.trim() || 'Anonymous Public';
   const sel = document.getElementById('pub-type');
   
   if (!location || !desc) { 
@@ -818,6 +987,7 @@ function submitPublicReport() {
     icon: '📢' 
   });
   AppState.save();
+  AppState.animateHeroStats();
   Modal.close('modal-public-report');
   
   // Clear fields
@@ -891,7 +1061,8 @@ function initHeroMap() {
 document.addEventListener('DOMContentLoaded', async () => {
   // Initialize systems
   Toast.init();
-  await AppState.init();
+  // Start init, but never block hiding the loader.
+  const initPromise = AppState.init().catch((e) => console.warn('App init failed:', e));
   
   // Modal triggers (delegated)
   document.addEventListener('click', function modalTriggerDelegate(ev) {
@@ -905,15 +1076,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Hide loader
+  // Hide loader - ensure it always hides
   const loader = document.getElementById('page-loader');
-  loader.style.opacity = '0';
-  setTimeout(() => loader.style.display = 'none', 500);
-
-  // Auto-login if user exists
-  if (AppState.currentUser) {
-    setTimeout(() => showPanel(AppState.currentUser.role), 500);
+  if (loader) {
+    loader.classList.add('hide');
+    setTimeout(() => {
+      loader.style.display = 'none';
+    }, 500);
   }
+  
+  // Auto-login if user exists (after init finishes)
+  initPromise.then(() => {
+    if (AppState.currentUser) {
+      setTimeout(() => showPanel(normalizeRole(AppState.currentUser.role, AppState.currentUser.name)), 500);
+    }
+  }).catch(() => {
+    // Ensure loader hides even if init fails
+    if (loader) loader.style.display = 'none';
+  });
 
   // Navbar scroll effect
   const navbar = document.getElementById('navbar');
