@@ -196,7 +196,7 @@ select.form-control {
   -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
 }
-.hero-content { position: relative; z-index: 2; padding: 130px 80px 120px; max-width: 680px; }
+.hero-content { position: relative; z-index: 5; padding: 130px 80px 120px; max-width: 680px; }
 .hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 100px; background: rgba(212,168,67,.15); border: 1px solid rgba(212,168,67,.3); font-size: 12px; font-weight: 600; color: var(--wheat); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 24px; }
 .hero-title { font-size: clamp(36px,5.5vw,68px); color: var(--cream); line-height: 1.05; margin-bottom: 20px; }
 .hero-title em { color: var(--wheat); font-style: normal; }
@@ -206,7 +206,13 @@ select.form-control {
   display: flex; gap: 16px; flex-wrap: wrap; margin-top: 28px;
   position: relative; z-index: 3;
 }
-.floating-map { position: absolute; right: 6%; top: 50%; transform: translateY(-50%); width: min(420px,38vw); height: 460px; border-radius: 28px; overflow: hidden; box-shadow: 0 40px 100px rgba(0,0,0,.5), 0 0 0 1px rgba(212,168,67,.2); animation: floatMap 7s ease-in-out infinite, fadeIn 1s .4s both; }
+.floating-map {
+  position: absolute; right: 6%; top: 50%; transform: translateY(-50%); z-index: 1;
+  width: min(420px,38vw); height: 460px; border-radius: 28px; overflow: hidden;
+  box-shadow: 0 40px 100px rgba(0,0,0,.5), 0 0 0 1px rgba(212,168,67,.2);
+  animation: floatMap 7s ease-in-out infinite, fadeIn 1s .4s both;
+  pointer-events: none;
+}
 @keyframes floatMap { 0%,100%{transform:translateY(-50%) translateY(0)} 50%{transform:translateY(-50%) translateY(-14px)} }
 .hero-stat { background: rgba(250,246,238,.07); backdrop-filter: blur(20px); border: 1px solid rgba(250,246,238,.14); border-radius: 14px; padding: 14px 22px; text-align: center; }
 .hero-stat-value { font-family: 'Playfair Display',serif; font-size: 26px; color: var(--wheat); font-weight: 700; line-height: 1; }
@@ -244,7 +250,8 @@ footer { background: var(--soil); color: rgba(250,246,238,.5); display: flex; al
 .footer-brand span { color: var(--wheat); }
 
 /* ============ MODALS ============ */
-.modal-overlay { position: fixed; inset: 0; background: rgba(28,16,8,.72); backdrop-filter: blur(6px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 16px; }
+/* Must sit above .page-loader (9998) or login/register modals stay invisible / inert */
+.modal-overlay { position: fixed; inset: 0; background: rgba(28,16,8,.72); backdrop-filter: blur(6px); z-index: 10050; display: none; align-items: center; justify-content: center; padding: 16px; }
 .modal-overlay.show { display: flex; animation: fadeIn .2s both; }
 .modal { background: var(--surface); border-radius: var(--r-xl); padding: 36px; width: 100%; max-width: 480px; max-height: calc(100dvh - 40px); overflow-y: auto; box-shadow: var(--shadow-xl); position: relative; animation: modalUp .3s both; }
 .modal-lg { max-width: 620px; }

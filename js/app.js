@@ -133,6 +133,9 @@ const AppState = {
       this.users = Array.isArray(data.users) ? data.users : [];
       this.incidents = Array.isArray(data.incidents) ? data.incidents : [];
       this.activityLog = Array.isArray(data.activityLog) ? data.activityLog : [];
+      if (this.users.length === 0) {
+        this.users = DEMO_SEED_USERS.map((u) => ({ ...u }));
+      }
     } catch (e) {
       console.warn('Backend load error:', e);
       this.farms = [];
@@ -535,3 +538,16 @@ function showPage(id) {
   const pg = document.getElementById('page-' + id);
   if (pg) pg.style.display = id === 'panel' ? 'flex' : 'block';
 }
+
+/* HTML `onclick="..."` only sees `window.*` — `const` globals are not on window */
+(function exposeForInlineHandlers() {
+  const g = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : null);
+  if (!g) return;
+  g.AppState = AppState;
+  g.Auth = Auth;
+  g.Utils = Utils;
+  g.Toast = Toast;
+  g.Modal = Modal;
+  g.MapManager = MapManager;
+  g.SensorSim = SensorSim;
+})();

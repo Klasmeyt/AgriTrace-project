@@ -609,14 +609,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hideLoader = () => {
     const loader = document.getElementById('page-loader');
     if (loader) {
+      loader.style.pointerEvents = 'none';
       loader.style.opacity = '0';
       setTimeout(() => { loader.style.display = 'none'; }, 500);
     }
   };
 
   try {
-    await AppState.init();
     Toast.init();
+    await AppState.init();
 
     // If user was logged in before, redirect to their panel
     if (AppState.currentUser) {
@@ -651,14 +652,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Page loader
-  const loader = document.getElementById('page-loader');
-  if (loader) {
-    setTimeout(() => {
-      loader.style.opacity = '0';
-      setTimeout(() => { loader.style.display = 'none'; }, 500);
-    }, 1800);
-  }
 });
 
 </script>
