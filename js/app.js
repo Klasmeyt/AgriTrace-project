@@ -7,16 +7,36 @@
 /* ============================================================
    APP STATE
 ============================================================ */
-const supabase = window.supabase.createClient(
-  'https://vkgwhdhreoxokaohcvxp.supabase.co',  // ← your actual Supabase URL
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZ3doZGhyZW94b2thb2hjdnhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzI0NzAsImV4cCI6MjA4OTc0ODQ3MH0.gjNM0Ujc7powUhAs9vn1z6bBoyOlvnVuSF1i01tn7y0'              // ← your actual anon key (from Supabase → Settings → API)
-);
+/** Demo accounts when the API is unreachable (same as quick-login test users). */
+const DEMO_SEED_USERS = [
+  { id: 'u-seed-admin', name: 'System Admin', email: 'admin@agritrace.ph', password: 'admin123', role: 'admin', status: 'active', avatar: null, phone: '', created: new Date().toISOString() },
+  { id: 'u-seed-officer', name: 'Maria Santos', email: 'officer@agritrace.ph', password: 'officer123', role: 'officer', status: 'active', avatar: null, phone: '', created: new Date().toISOString() },
+  { id: 'u-seed-farmer', name: 'Juan dela Cruz', email: 'farmer@agritrace.ph', password: 'farmer123', role: 'farmer', status: 'active', avatar: null, phone: '', created: new Date().toISOString() },
+];
+
+const SB_LIB = typeof globalThis !== 'undefined' ? globalThis.supabase : null;
+let supabase = null;
+try {
+  if (SB_LIB?.createClient) {
+    supabase = SB_LIB.createClient(
+      'https://vkgwhdhreoxokaohcvxp.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZrZ3doZGhyZW94b2thb2hjdnhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzI0NzAsImV4cCI6MjA4OTc0ODQ3MH0.gjNM0Ujc7powUhAs9vn1z6bBoyOlvnVuSF1i01tn7y0'
+    );
+  }
+} catch (e) {
+  console.warn('Supabase client init failed:', e);
+}
 const Api = {
-  baseUrl: (window.location.port === '8080') ? 'http://127.0.0.1:8081' : '',
+  baseUrl: '',
   async loadState() {
     const res = await fetch(`${this.baseUrl}/api/state`);
-    if (!res.ok) throw new Error('Failed to load backend state');
-    return res.json();
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || 'Failed to load backend state');
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error('Invalid JSON from server');
+    }
   },
   async saveState(payload) {
     const res = await fetch(`${this.baseUrl}/api/state`, {
@@ -40,26 +60,63 @@ const AppState = {
   _saveTimer: null,
 
   async init() {
-    // Handle Google OAuth redirect
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user && !AppState.currentUser) {
-      const googleUser = {
-        id: session.user.id,
-        name: session.user.user_metadata?.full_name || session.user.email,
-        email: session.user.email,
-        role: 'farmer',        // default role for Google sign-ins
-        status: 'active',
-        avatar: session.user.user_metadata?.avatar_url || null,
-        phone: '',
-        created: new Date().toISOString()
-      };
-      AppState.currentUser = googleUser;
-      localStorage.setItem('agritrace_user', JSON.stringify(googleUser));
-    }
-  
     this.loadCurrentUser();
+
+    if (supabase?.auth) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const googleUser = {
+            id: session.user.id,
+            name: session.user.user_metadata?.full_name || session.user.email,
+            email: session.user.email,
+            role: 'farmer',
+            status: 'active',
+            avatar: session.user.user_metadata?.avatar_url || null,
+            phone: '',
+            created: new Date().toISOString()
+          };
+          AppState.currentUser = googleUser;
+          localStorage.setItem('agritrace_user', JSON.stringify(googleUser));
+        }
+      } catch (e) {
+        console.warn('Supabase session check failed:', e);
+      }
+    }
+
     await this.loadFromBackend();
+    this.syncCurrentUserWithServer();
+    this.refreshHeroStats();
     this.initRuntimeNotifications();
+  },
+
+  syncCurrentUserWithServer() {
+    const cu = this.currentUser;
+    if (!cu) return;
+    if (cu.password) {
+      const u = this.users.find(x => x.email?.toLowerCase() === cu.email?.toLowerCase());
+      if (!u || u.password !== cu.password) {
+        this.currentUser = null;
+        try { localStorage.removeItem('agritrace_user'); } catch (e) {}
+        Toast?.show?.('Session expired — please sign in again.', 'info');
+      } else {
+        this.currentUser = u;
+        try { localStorage.setItem('agritrace_user', JSON.stringify(u)); } catch (e) {}
+      }
+    }
+  },
+
+  refreshHeroStats() {
+    const farmsEl = document.getElementById('hero-stat-farms');
+    const animalsEl = document.getElementById('hero-stat-animals');
+    const officersEl = document.getElementById('hero-stat-officers');
+    if (!farmsEl || !animalsEl || !officersEl) return;
+    const farmCount = this.farms.length;
+    const totalAnimals = this.farms.reduce((s, f) => s + (Number(f.totalCount) || 0), 0);
+    const officerCount = this.users.filter(u => u.role === 'officer' || u.role === 'admin').length;
+    farmsEl.textContent = String(farmCount);
+    animalsEl.textContent = String(totalAnimals);
+    officersEl.textContent = String(Math.max(officerCount, 1));
   },
 
   loadCurrentUser() {
@@ -79,10 +136,10 @@ const AppState = {
     } catch (e) {
       console.warn('Backend load error:', e);
       this.farms = [];
-      this.users = [];
+      this.users = DEMO_SEED_USERS.map(u => ({ ...u }));
       this.incidents = [];
       this.activityLog = [];
-      Toast?.show?.('Unable to reach backend database. Start server with npm start.', 'warning');
+      Toast?.show?.('Using offline demo accounts. Run npm start with Supabase configured to sync data.', 'warning');
     }
   },
 
@@ -98,6 +155,7 @@ const AppState = {
           activityLog: this.activityLog
         }).catch(err => console.warn('Backend save error:', err));
       }, 200);
+      this.refreshHeroStats();
     } catch (e) { console.warn('Storage save error:', e); }
   },
 
@@ -121,6 +179,10 @@ const Auth = {
   },
 
   async loginWithGoogle() {
+    if (!supabase?.auth) {
+      Toast?.show?.('Google sign-in is unavailable (Supabase not loaded).', 'error');
+      return { success: false, error: 'Supabase not available' };
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + '/auth/callback' }
@@ -145,7 +207,7 @@ const Auth = {
 
   logout() {
     if (sensorInterval) clearInterval(sensorInterval);
-    supabase.auth.signOut(); // ← add this line
+    supabase?.auth?.signOut?.().catch(() => {});
     AppState.currentUser = null;
     localStorage.removeItem('agritrace_user');
     showPage('home');
